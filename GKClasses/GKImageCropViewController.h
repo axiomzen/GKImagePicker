@@ -10,19 +10,18 @@
 
 @protocol GKImageCropControllerDelegate;
 
-@interface GKImageCropViewController : UIViewController{
-    UIImage *_croppedImage;
-}
+@interface GKImageCropViewController : UIViewController
 
 @property (nonatomic, strong) UIImage *sourceImage;
+@property (nonatomic, assign) CGRect crop;
 @property (nonatomic, assign) CGSize cropSize; //size of the crop rect, default is 320x320
-@property (nonatomic, assign) BOOL resizeableCropArea; 
-@property (nonatomic, strong) id<GKImageCropControllerDelegate> delegate;
+@property (nonatomic, assign) CGSize minimumCropSize;
+@property (nonatomic, weak) id<GKImageCropControllerDelegate> delegate;
 
 @end
 
 
 @protocol GKImageCropControllerDelegate <NSObject>
 @required
-- (void)imageCropController:(GKImageCropViewController *)imageCropController didFinishWithCroppedImage:(UIImage *)croppedImage;
+- (void)imageCropController:(GKImageCropViewController *)imageCropController didFinishWithCrop:(CGRect)crop;
 @end

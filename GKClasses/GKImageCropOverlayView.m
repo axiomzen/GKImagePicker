@@ -15,12 +15,6 @@
 @implementation GKImageCropOverlayView
 
 #pragma mark -
-#pragma Getter/Setter
-
-@synthesize cropSize;
-@synthesize toolbar;
-
-#pragma mark -
 #pragma Overriden
 
 - (id)initWithFrame:(CGRect)frame{
@@ -39,11 +33,9 @@
 // An empty implementation adversely affects performance during animation.
 
 - (void)drawRect:(CGRect)rect{
-    
-    CGFloat toolbarSize = UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad ? 0 : 54;
 
     CGFloat width = CGRectGetWidth(self.frame);
-    CGFloat height = CGRectGetHeight(self.frame) - toolbarSize;
+    CGFloat height = CGRectGetHeight(self.frame);
     
     CGFloat heightSpan = floor(height / 2 - self.cropSize.height / 2);
     CGFloat widthSpan = floor(width / 2 - self.cropSize.width  / 2);

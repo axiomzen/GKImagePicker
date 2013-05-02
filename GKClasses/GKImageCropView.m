@@ -8,7 +8,6 @@
 
 #import "GKImageCropView.h"
 #import "GKImageCropOverlayView.h"
-#import "GKResizeableCropOverlayView.h"
 
 #import <QuartzCore/QuartzCore.h>
 
@@ -32,227 +31,115 @@ static CGRect GKScaleRect(CGRect rect, CGFloat scale)
     CGSize boundsSize = self.bounds.size;
     CGRect frameToCenter = zoomView.frame;
     
-    // center horizontally
-    if (frameToCenter.size.width < boundsSize.width)
-        frameToCenter.origin.x = (boundsSize.width - frameToCenter.size.width) / 2;
-    else
-        frameToCenter.origin.x = 0;
-    
-    // center vertically
-    if (frameToCenter.size.height < boundsSize.height)
-        frameToCenter.origin.y = (boundsSize.height - frameToCenter.size.height) / 2;
-    else
-        frameToCenter.origin.y = 0;
-    
-    zoomView.frame = frameToCenter;
+    UIEdgeInsets inset = UIEdgeInsetsZero;
+    if (frameToCenter.size.width < boundsSize.width) {
+        inset.right = inset.left = (boundsSize.width - frameToCenter.size.width);
+    }
+    if (frameToCenter.size.height < boundsSize.height) {
+        inset.top = inset.bottom = (boundsSize.height - frameToCenter.size.height);
+    }
+    self.contentInset = inset;
 }
 
 @end
 
 @interface GKImageCropView ()<UIScrollViewDelegate>
+
 @property (nonatomic, strong) UIScrollView *scrollView;
 @property (nonatomic, strong) UIImageView *imageView;
 @property (nonatomic, strong) GKImageCropOverlayView *cropOverlayView;
-@property (nonatomic, assign) CGFloat xOffset;
-@property (nonatomic, assign) CGFloat yOffset;
 
-- (CGAffineTransform)_orientationTransformedRectOfImage:(UIImage *)image;
+@property (nonatomic) CGSize cropSize;
+@property (nonatomic, strong) UIImage *imageToCrop;
+@property (nonatomic) CGSize minimumCropSize;
+
 @end
 
 @implementation GKImageCropView
 
-#pragma mark -
-#pragma Getter/Setter
-
-@synthesize scrollView, imageView, cropOverlayView, resizableCropArea, xOffset, yOffset;
-
-- (void)setImageToCrop:(UIImage *)imageToCrop{
-    self.imageView.image = imageToCrop;
-}
-
-- (UIImage *)imageToCrop{
-    return self.imageView.image;
-}
-
-- (void)setCropSize:(CGSize)cropSize{
-    
-    if (self.cropOverlayView == nil){
-        if(self.resizableCropArea)
-            self.cropOverlayView = [[GKResizeableCropOverlayView alloc] initWithFrame:self.bounds andInitialContentSize:CGSizeMake(cropSize.width, cropSize.height)];
-        else
-            self.cropOverlayView = [[GKImageCropOverlayView alloc] initWithFrame:self.bounds];
-        
-        [self addSubview:self.cropOverlayView];
-    }
-    self.cropOverlayView.cropSize = cropSize;
-}
-
-- (CGSize)cropSize{
-    return self.cropOverlayView.cropSize;
-}
-
-#pragma mark -
-#pragma Public Methods
-
-- (UIImage *)croppedImage{
-    
-    //renders the the zoomed area into the cropped image
-    if (self.resizableCropArea){
-        GKResizeableCropOverlayView* resizeableView = (GKResizeableCropOverlayView*)self.cropOverlayView;
-        UIGraphicsBeginImageContextWithOptions(CGSizeMake(resizeableView.contentView.frame.size.width, resizeableView.contentView.frame.size.height), self.scrollView.opaque, 0.0);
-        CGContextRef ctx = UIGraphicsGetCurrentContext();
-        
-        CGFloat xPositionInScrollView = resizeableView.contentView.frame.origin.x + self.scrollView.contentOffset.x - self.xOffset;
-        CGFloat yPositionInScrollView = resizeableView.contentView.frame.origin.y + self.scrollView.contentOffset.y - self.yOffset;
-        CGContextTranslateCTM(ctx, -(xPositionInScrollView), -(yPositionInScrollView));
-		
-		[self.scrollView.layer renderInContext:UIGraphicsGetCurrentContext()];
-		UIImage *viewImage = UIGraphicsGetImageFromCurrentImageContext();
-		UIGraphicsEndImageContext();
-		return viewImage;
-    }
-    else {
-		
-		//scaled width/height in regards of real width to crop width
-		CGFloat scaleWidth = self.imageToCrop.size.width / self.cropSize.width;
-		CGFloat scaleHeight = self.imageToCrop.size.height / self.cropSize.height;
-		CGFloat scale = MAX(scaleWidth, scaleHeight);
-		
-		//extract visible rect from scrollview and scale it 
-		CGRect visibleRect = [scrollView convertRect:scrollView.bounds toView:imageView];
-		visibleRect = GKScaleRect(visibleRect, scale);
-		
-		//transform visible rect to image orientation
-		CGAffineTransform rectTransform = [self _orientationTransformedRectOfImage:self.imageToCrop];
-		visibleRect = CGRectApplyAffineTransform(visibleRect, rectTransform);
-		
-		//finally crop image
-		CGImageRef imageRef = CGImageCreateWithImageInRect([self.imageToCrop CGImage], visibleRect);
-		UIImage *result = [UIImage imageWithCGImage:imageRef scale:self.imageToCrop.scale orientation:self.imageToCrop.imageOrientation];
-		CGImageRelease(imageRef);
-		
-		return result;
-    }
-}
-
-- (CGAffineTransform)_orientationTransformedRectOfImage:(UIImage *)img
+- (CGRect)crop
 {
-	CGAffineTransform rectTransform;
-	switch (img.imageOrientation)
-	{
-		case UIImageOrientationLeft:
-			rectTransform = CGAffineTransformTranslate(CGAffineTransformMakeRotation(rad(90)), 0, -img.size.height);
-			break;
-		case UIImageOrientationRight:
-			rectTransform = CGAffineTransformTranslate(CGAffineTransformMakeRotation(rad(-90)), -img.size.width, 0);
-			break;
-		case UIImageOrientationDown:
-			rectTransform = CGAffineTransformTranslate(CGAffineTransformMakeRotation(rad(-180)), -img.size.width, -img.size.height);
-			break;
-		default:
-			rectTransform = CGAffineTransformIdentity;
-	};
-	
-	return CGAffineTransformScale(rectTransform, img.scale, img.scale);
+    CGRect crop = CGRectZero;
+    
+    crop.origin.x = self.scrollView.contentOffset.x / self.scrollView.zoomScale;
+    crop.origin.y = self.scrollView.contentOffset.y / self.scrollView.zoomScale;
+    crop.size.width = self.cropSize.width / self.scrollView.zoomScale;
+    crop.size.height = self.cropSize.height / self.scrollView.zoomScale;
+    
+    return crop;
 }
 
 #pragma mark -
 #pragma Override Methods
 
-- (id)initWithFrame:(CGRect)frame
+- (id)initWithFrame:(CGRect)frame imageToCrop:(UIImage *)imageToCrop crop:(CGRect)crop cropSize:(CGSize)cropSize minimumCropSize:(CGSize)minimumCropSize
 {
     self = [super initWithFrame:frame];
     if (self) {
-
+        self.cropSize = cropSize;
+        self.imageToCrop = imageToCrop;
+        self.minimumCropSize = minimumCropSize;
+        
         self.userInteractionEnabled = YES;
         self.backgroundColor = [UIColor blackColor];
-        self.scrollView = [[ScrollView alloc] initWithFrame:self.bounds ];
+        self.clipsToBounds = YES;
+        
+        CGSize size = cropSize;
+        CGFloat xOffset = floor((CGRectGetWidth(self.bounds) - size.width) * 0.5);
+        CGFloat yOffset = floor((CGRectGetHeight(self.bounds) - size.height) * 0.5);
+        
+        self.scrollView = [[ScrollView alloc] initWithFrame:CGRectMake(xOffset, yOffset, size.width, size.height)];
+        self.scrollView.contentSize = imageToCrop.size;
         self.scrollView.showsHorizontalScrollIndicator = NO;
         self.scrollView.showsVerticalScrollIndicator = NO;
         self.scrollView.delegate = self;
         self.scrollView.clipsToBounds = NO;
-        self.scrollView.decelerationRate = 0.0; 
+        self.scrollView.decelerationRate = 0.0;
         self.scrollView.backgroundColor = [UIColor clearColor];
         [self addSubview:self.scrollView];
         
-        self.imageView = [[UIImageView alloc] initWithFrame:self.scrollView.frame];
+        CGRect imageViewFrame = CGRectMake(0, 0, imageToCrop.size.width, imageToCrop.size.height);
+        self.imageView = [[UIImageView alloc] initWithFrame:imageViewFrame];
+        self.imageView.image = imageToCrop;
         self.imageView.contentMode = UIViewContentModeScaleAspectFit;
         self.imageView.backgroundColor = [UIColor blackColor];
         [self.scrollView addSubview:self.imageView];
-    
         
-        self.scrollView.minimumZoomScale = CGRectGetWidth(self.scrollView.frame) / CGRectGetWidth(self.imageView.frame);
-        self.scrollView.maximumZoomScale = 20.0;
-        [self.scrollView setZoomScale:1.0];
+        self.scrollView.maximumZoomScale = cropSize.height / minimumCropSize.height;
+        if (imageToCrop.size.width * cropSize.height > cropSize.width * imageToCrop.size.height) {
+            self.scrollView.minimumZoomScale = cropSize.width / imageToCrop.size.width;
+            self.scrollView.maximumZoomScale = fmaxf(self.scrollView.maximumZoomScale, cropSize.height / imageToCrop.size.height);
+        } else {
+            self.scrollView.minimumZoomScale = cropSize.height / imageToCrop.size.height;
+            self.scrollView.maximumZoomScale = fmaxf(self.scrollView.maximumZoomScale, cropSize.width / imageToCrop.size.width);
+        }
+        self.scrollView.zoomScale = cropSize.height / crop.size.height;
+        
+        self.scrollView.contentOffset = CGPointMake(crop.origin.x * self.scrollView.zoomScale, crop.origin.y * self.scrollView.zoomScale);
+        
+        self.cropOverlayView = [[GKImageCropOverlayView alloc] initWithFrame:self.bounds];
+        self.cropOverlayView.cropSize = cropSize;
+        [self addSubview:self.cropOverlayView];
     }
     return self;
 }
 
 
-- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event{
-    if (!self.resizableCropArea)
-        return self.scrollView;
-
-    GKResizeableCropOverlayView* resizeableCropView = (GKResizeableCropOverlayView*)self.cropOverlayView;
-    
-    CGRect outerFrame = CGRectInset(resizeableCropView.cropBorderView.frame, -10 , -10);
-    if (CGRectContainsPoint(outerFrame, point)){
-        
-        if (resizeableCropView.cropBorderView.frame.size.width < 60 || resizeableCropView.cropBorderView.frame.size.height < 60 )
-            return [super hitTest:point withEvent:event];
-        
-        CGRect innerTouchFrame = CGRectInset(resizeableCropView.cropBorderView.frame, 30, 30);
-        if (CGRectContainsPoint(innerTouchFrame, point))
-            return self.scrollView;
-        
-        CGRect outBorderTouchFrame = CGRectInset(resizeableCropView.cropBorderView.frame, -10, -10);
-        if (CGRectContainsPoint(outBorderTouchFrame, point))
-            return [super hitTest:point withEvent:event];
-        
-        return [super hitTest:point withEvent:event];
-    }
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
+{
     return self.scrollView;
-}
-
-- (void)layoutSubviews{
-    [super layoutSubviews];
-    
-    CGSize size = self.cropSize;
-    CGFloat toolbarSize = UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad ? 0 : 54;
-    self.xOffset = floor((CGRectGetWidth(self.bounds) - size.width) * 0.5);
-    self.yOffset = floor((CGRectGetHeight(self.bounds) - toolbarSize - size.height) * 0.5); //fixed
-
-    CGFloat height = self.imageToCrop.size.height;
-    CGFloat width = self.imageToCrop.size.width;
-    
-    CGFloat faktor = 0.f;
-    CGFloat faktoredHeight = 0.f;
-    CGFloat faktoredWidth = 0.f;
-    
-    if(width > height){
-        
-        faktor = width / size.width;
-        faktoredWidth = size.width;
-        faktoredHeight =  height / faktor;
-        
-    } else {
-        
-        faktor = height / size.height;
-        faktoredWidth = width / faktor;
-        faktoredHeight =  size.height;
-    }
-    
-    self.cropOverlayView.frame = self.bounds;
-    self.scrollView.frame = CGRectMake(xOffset, yOffset, size.width, size.height);
-    self.scrollView.contentSize = CGSizeMake(size.width, size.height);
-    self.imageView.frame = CGRectMake(0, floor((size.height - faktoredHeight) * 0.5), faktoredWidth, faktoredHeight);
 }
 
 #pragma mark -
 #pragma UIScrollViewDelegate Methods
 
-- (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView{
+- (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView
+{
     return self.imageView;
+}
+
+- (void)scrollViewDidEndZooming:(UIScrollView *)scrollView withView:(UIView *)view atScale:(float)scale
+{
 }
 
 @end

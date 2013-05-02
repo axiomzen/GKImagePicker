@@ -26,47 +26,37 @@
 @implementation GKImageCropViewController
 
 #pragma mark -
-#pragma mark Getter/Setter
-
-@synthesize sourceImage, cropSize, delegate;
-@synthesize imageCropView;
-@synthesize toolbar;
-@synthesize cancelButton, useButton, resizeableCropArea;
-
-#pragma mark -
 #pragma Private Methods
 
 
 - (void)_actionCancel{
-    [self.navigationController popViewControllerAnimated:YES];
+    [self dismissViewControllerAnimated:YES completion:nil];
 }
 
 
 - (void)_actionUse{
-    _croppedImage = [self.imageCropView croppedImage];
-    [self.delegate imageCropController:self didFinishWithCroppedImage:_croppedImage];
+    [self.delegate imageCropController:self didFinishWithCrop:self.imageCropView.crop];
 }
 
 
 - (void)_setupNavigationBar{
     
-    self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCancel 
-                                                                                          target:self 
+    self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCancel
+                                                                                          target:self
                                                                                           action:@selector(_actionCancel)];
     
-    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:NSLocalizedString(@"GKIuse", @"") 
-                                                                              style:UIBarButtonItemStyleBordered 
-                                                                             target:self 
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:NSLocalizedString(@"GKIuse", @"")
+                                                                              style:UIBarButtonItemStyleBordered
+                                                                             target:self
                                                                              action:@selector(_actionUse)];
 }
 
 
 - (void)_setupCropView{
-    
-    self.imageCropView = [[GKImageCropView alloc] initWithFrame:self.view.bounds];
-    [self.imageCropView setImageToCrop:sourceImage];
-    [self.imageCropView setResizableCropArea:self.resizeableCropArea];
-    [self.imageCropView setCropSize:cropSize];
+    CGRect frame = self.view.bounds;
+    CGFloat toolbarSize = UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad ? 0 : 54;
+    frame.size.height -= toolbarSize;
+    self.imageCropView = [[GKImageCropView alloc] initWithFrame:frame imageToCrop:self.sourceImage crop:self.crop cropSize:self.cropSize minimumCropSize:self.minimumCropSize];
     [self.view addSubview:self.imageCropView];
 }
 
@@ -115,6 +105,7 @@
     CGContextRef ctx = UIGraphicsGetCurrentContext();
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     CGGradientRef gradient = CGGradientCreateWithColorComponents(colorSpace, components, NULL, 2);
+    CGColorSpaceRelease(colorSpace);
     
     CGContextDrawLinearGradient(ctx, gradient, CGPointMake(0, 0), CGPointMake(0, 54), kCGImageAlphaNoneSkipFirst);
     
@@ -156,24 +147,16 @@
 #pragma mark -
 #pragma Super Class Methods
 
-- (id)init{
-    self = [super init];
-    if (self) {
-        // Custom initialization
-    }
-    return self;
-}
-
 - (void)viewDidLoad{
     [super viewDidLoad];
 	// Do any additional setup after loading the view.
     
     self.title = NSLocalizedString(@"GKIchoosePhoto", @"");
-
+    
     [self _setupNavigationBar];
     [self _setupCropView];
     [self _setupToolbar];
-
+    
     if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
         [self.navigationController setNavigationBarHidden:YES];
     } else {
@@ -184,12 +167,15 @@
 - (void)viewDidUnload{
     [super viewDidUnload];
     // Release any retained subviews of the main view.
+    self.toolbar = nil;
+    self.cancelButton = nil;
+    self.useButton = nil;
+    self.imageCropView = nil;
 }
 
 - (void)viewWillLayoutSubviews{
     [super viewWillLayoutSubviews];
     
-    self.imageCropView.frame = self.view.bounds;
     self.toolbar.frame = CGRectMake(0, CGRectGetHeight(self.view.frame) - 54, 320, 54);
 }
 
