@@ -15,6 +15,7 @@
 @property (nonatomic, strong) UIToolbar *toolbar;
 @property (nonatomic, strong) UIButton *cancelButton;
 @property (nonatomic, strong) UIButton *useButton;
+@property (nonatomic, getter = isReturning) BOOL returning;
 
 - (void)_actionCancel;
 - (void)_actionUse;
@@ -35,7 +36,15 @@
 
 
 - (void)_actionUse{
-    [self.delegate imageCropController:self didFinishWithCrop:self.imageCropView.crop];
+    if (!self.isReturning) {
+        self.returning = YES;
+        if (self.imageCropView.scrollView.isZooming || self.imageCropView.scrollView.isZoomBouncing || self.imageCropView.scrollView.isDragging || self.imageCropView.scrollView.isDecelerating) {
+            self.imageCropView.delegate = self;
+        } else {
+            [self.delegate imageCropController:self didFinishWithCrop:self.imageCropView.crop];
+            self.delegate = nil;
+        }
+    }
 }
 
 
@@ -147,6 +156,11 @@
 #pragma mark -
 #pragma Super Class Methods
 
+- (void)dealloc
+{
+    self.imageCropView.delegate = nil;
+}
+
 - (void)viewDidLoad{
     [super viewDidLoad];
 	// Do any additional setup after loading the view.
@@ -182,6 +196,35 @@
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
 {
     return (interfaceOrientation == UIInterfaceOrientationPortrait);
+}
+
+#pragma mark - UIScrollViewDelegate
+
+- (void)scrollViewDidEndZooming:(UIScrollView *)scrollView withView:(UIView *)view atScale:(float)scale
+{
+    if (self.isReturning && !self.imageCropView.scrollView.isZooming && !self.imageCropView.scrollView.isZoomBouncing && !self.imageCropView.scrollView.isDragging && !self.imageCropView.scrollView.isDecelerating) {
+        [self.delegate imageCropController:self didFinishWithCrop:self.imageCropView.crop];
+        self.imageCropView.delegate = nil;
+        self.delegate = nil;
+    }
+}
+
+- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView
+{
+    if (self.isReturning && !self.imageCropView.scrollView.isZooming && !self.imageCropView.scrollView.isZoomBouncing && !self.imageCropView.scrollView.isDragging && !self.imageCropView.scrollView.isDecelerating) {
+        [self.delegate imageCropController:self didFinishWithCrop:self.imageCropView.crop];
+        self.imageCropView.delegate = nil;
+        self.delegate = nil;
+    }
+}
+
+- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate
+{
+    if (self.isReturning && !self.imageCropView.scrollView.isZooming && !self.imageCropView.scrollView.isZoomBouncing && !self.imageCropView.scrollView.isDragging && !self.imageCropView.scrollView.isDecelerating && !decelerate) {
+        [self.delegate imageCropController:self didFinishWithCrop:self.imageCropView.crop];
+        self.imageCropView.delegate = nil;
+        self.delegate = nil;
+    }
 }
 
 @end

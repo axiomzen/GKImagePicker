@@ -10,7 +10,7 @@
 
 @protocol GKImageCropControllerDelegate;
 
-@interface GKImageCropViewController : UIViewController
+@interface GKImageCropViewController : UIViewController <UIScrollViewDelegate>
 
 @property (nonatomic, strong) UIImage *sourceImage;
 @property (nonatomic, assign) CGRect crop;

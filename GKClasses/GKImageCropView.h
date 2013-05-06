@@ -13,5 +13,8 @@
 - (id)initWithFrame:(CGRect)frame imageToCrop:(UIImage *)imageToCrop crop:(CGRect)crop cropSize:(CGSize)cropSize minimumCropSize:(CGSize)minimumCropSize;
 
 @property (nonatomic, assign, readonly) CGRect crop;
+@property (nonatomic, weak) id<UIScrollViewDelegate> delegate;
+
+@property (nonatomic, strong) UIScrollView *scrollView;
 
 @end
