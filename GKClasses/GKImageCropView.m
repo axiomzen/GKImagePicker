@@ -124,6 +124,11 @@ static CGRect GKScaleRect(CGRect rect, CGFloat scale)
     return self;
 }
 
+- (void)dealloc
+{
+    self.scrollView.delegate = nil;
+}
+
 
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
 {
