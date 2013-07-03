@@ -7,6 +7,7 @@
 //
 
 #import "GKImageCropView.h"
+#import "GKImageCropUnderlayView.h"
 #import "GKImageCropOverlayView.h"
 
 #import <QuartzCore/QuartzCore.h>
@@ -46,6 +47,7 @@ static CGRect GKScaleRect(CGRect rect, CGFloat scale)
 @interface GKImageCropView ()<UIScrollViewDelegate>
 
 @property (nonatomic, strong) UIImageView *imageView;
+@property (nonatomic, strong) GKImageCropUnderlayView *cropUnderlayView;
 @property (nonatomic, strong) GKImageCropOverlayView *cropOverlayView;
 
 @property (nonatomic) CGSize cropSize;
@@ -86,6 +88,10 @@ static CGRect GKScaleRect(CGRect rect, CGFloat scale)
         CGSize size = cropSize;
         CGFloat xOffset = floor((CGRectGetWidth(self.bounds) - size.width) * 0.5);
         CGFloat yOffset = floor((CGRectGetHeight(self.bounds) - size.height) * 0.5);
+        
+        self.cropUnderlayView = [[GKImageCropUnderlayView alloc] initWithFrame:self.bounds];
+        self.cropUnderlayView.cropSize = cropSize;
+        [self addSubview:self.cropUnderlayView];
         
         self.scrollView = [[ScrollView alloc] initWithFrame:CGRectMake(xOffset, yOffset, size.width, size.height)];
         self.scrollView.contentSize = imageToCrop.size;
