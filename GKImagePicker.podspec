@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name           =  'GKImagePicker'
-  s.version        =  '0.0.1.a'
+  s.version        =  '0.0.1.b'
   s.license        =  'MIT'
   s.platform       =  :ios, '5.0'
   s.summary        =  'Image Picker with support for custom crop areas.'
@@ -11,7 +11,7 @@ Pod::Spec.new do |s|
                       'UIImagePickerController.'
   s.homepage       =  'https://github.com/gekitz/GKImagePicker'
   s.author         =  { 'Georg Kitz' => 'info@aurora-apps.com' }
-  s.source         =  { :git => 'https://github.com/garthex/GKImagePicker.git', :commit => '5f2f7eb496b94124de342b760784440078cb219f' }
+  s.source         =  { :git => 'https://github.com/garthex/GKImagePicker.git', :commit => '03e181e5a81261b9a767e0542a73e2d67107544d' }
   s.resources      =  'GKImages/*.png'
   s.source_files   =  'GKClasses/*.{h,m}'
   s.preserve_paths =  'GKClasses', 'GKImages'
