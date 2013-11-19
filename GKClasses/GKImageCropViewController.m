@@ -10,15 +10,14 @@
 #import "GKImageCropView.h"
 
 @interface GKImageCropViewController ()
+{
+    BOOL setToolBarFrame;
+}
 
 @property (nonatomic, strong) GKImageCropView *imageCropView;
-@property (nonatomic, strong) UIToolbar *toolbar;
-@property (nonatomic, strong) UIButton *cancelButton;
-@property (nonatomic, strong) UIButton *useButton;
+
 @property (nonatomic, getter = isReturning) BOOL returning;
 
-- (void)_actionCancel;
-- (void)_actionUse;
 - (void)_setupNavigationBar;
 - (void)_setupCropView;
 
@@ -30,12 +29,12 @@
 #pragma Private Methods
 
 
-- (void)_actionCancel{
+- (IBAction)actionCancel:(id)sender {
     [self dismissViewControllerAnimated:YES completion:nil];
 }
 
 
-- (void)_actionUse{
+- (IBAction)actionUse:(id)sender {
     if (!self.isReturning) {
         self.returning = YES;
         if (self.imageCropView.scrollView.isZooming || self.imageCropView.scrollView.isZoomBouncing || self.imageCropView.scrollView.isDragging || self.imageCropView.scrollView.isDecelerating) {
@@ -52,18 +51,18 @@
     
     self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCancel
                                                                                           target:self
-                                                                                          action:@selector(_actionCancel)];
+                                                                                          action:@selector(actionCancel:)];
     
     self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:NSLocalizedString(@"GKIuse", @"")
                                                                               style:UIBarButtonItemStyleBordered
                                                                              target:self
-                                                                             action:@selector(_actionUse)];
+                                                                             action:@selector(actionUse:)];
 }
 
 
 - (void)_setupCropView{
     CGRect frame = self.view.bounds;
-    CGFloat toolbarSize = UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad ? 0 : 54;
+    CGFloat toolbarSize = UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad ? 0 : setToolBarFrame ? 54 : 44;
     frame.size.height -= toolbarSize;
     self.imageCropView = [[GKImageCropView alloc] initWithFrame:frame imageToCrop:self.sourceImage crop:self.crop cropSize:self.cropSize minimumCropSize:self.minimumCropSize];
     [self.view addSubview:self.imageCropView];
@@ -82,7 +81,7 @@
     [self.cancelButton setTitle:NSLocalizedString(@"GKIcancel",@"") forState:UIControlStateNormal];
     [self.cancelButton setTitleColor:[UIColor colorWithRed:0.173 green:0.176 blue:0.176 alpha:1] forState:UIControlStateNormal];
     [self.cancelButton setTitleShadowColor:[UIColor colorWithRed:0.827 green:0.831 blue:0.839 alpha:1] forState:UIControlStateNormal];
-    [self.cancelButton  addTarget:self action:@selector(_actionCancel) forControlEvents:UIControlEventTouchUpInside];
+    [self.cancelButton  addTarget:self action:@selector(actionCancel:) forControlEvents:UIControlEventTouchUpInside];
     
 }
 
@@ -98,7 +97,7 @@
     [self.useButton setFrame:CGRectMake(0, 0, 50, 30)];
     [self.useButton setTitle:NSLocalizedString(@"GKIuse",@"") forState:UIControlStateNormal];
     [self.useButton setTitleShadowColor:[UIColor colorWithRed:0.118 green:0.247 blue:0.455 alpha:1] forState:UIControlStateNormal];
-    [self.useButton  addTarget:self action:@selector(_actionUse) forControlEvents:UIControlEventTouchUpInside];
+    [self.useButton  addTarget:self action:@selector(actionUse:) forControlEvents:UIControlEventTouchUpInside];
     
 }
 
@@ -127,9 +126,11 @@
 }
 
 - (void)_setupToolbar{
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
+    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone && self.toolbar == nil) {
+        setToolBarFrame = YES;
         self.toolbar = [[UIToolbar alloc] initWithFrame:CGRectZero];
-        [self.toolbar setBackgroundImage:[self _toolbarBackgroundImage] forToolbarPosition:UIToolbarPositionAny barMetrics:UIBarMetricsDefault];
+        //[self.toolbar setBackgroundImage:[self _toolbarBackgroundImage] forToolbarPosition:UIToolbarPositionAny barMetrics:UIBarMetricsDefault];
+        //[self.toolbar setBackgroundColor:[UIColor colorWithRed:49.f/255.f green:197.f/255.f blue:244.f/255.f alpha:1]];
         [self.view addSubview:self.toolbar];
         
         [self _setupCancelButton];
@@ -189,8 +190,16 @@
 
 - (void)viewWillLayoutSubviews{
     [super viewWillLayoutSubviews];
-    
-    self.toolbar.frame = CGRectMake(0, CGRectGetHeight(self.view.frame) - 54, 320, 54);
+    CGRect frame = self.imageCropView.frame;
+    if(setToolBarFrame) {
+        self.toolbar.frame = CGRectMake(0, CGRectGetHeight(self.view.frame) - 54, 320, 54);
+    }
+}
+
+-(void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+    CGRect frame = self.imageCropView.frame;
+    bool here = false;
 }
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
