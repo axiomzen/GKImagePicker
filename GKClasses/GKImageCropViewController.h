@@ -18,6 +18,12 @@
 @property (nonatomic, assign) CGSize minimumCropSize;
 @property (nonatomic, weak) id<GKImageCropControllerDelegate> delegate;
 
+@property (nonatomic, strong) IBOutlet UIToolbar *toolbar;
+@property (nonatomic, strong) IBOutlet UIButton *cancelButton;
+@property (nonatomic, strong) IBOutlet UIButton *useButton;
+
+- (IBAction)actionCancel:(id)sender;
+- (IBAction)actionUse:(id)sender;
 @end
 
 
