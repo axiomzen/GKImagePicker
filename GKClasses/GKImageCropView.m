@@ -137,7 +137,10 @@ static CGRect GKScaleRect(CGRect rect, CGFloat scale)
 
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
 {
-    return self.scrollView;
+    if(point.y < self.bounds.origin.y + self.bounds.size.height) {
+        return self.scrollView;
+    }
+    return nil;
 }
 
 #pragma mark -
